@@ -2,6 +2,29 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
+### 1. Environment Setup
+
+Create a `.env.local` file in the root directory with your API credentials:
+
+```bash
+cp .env.local.example .env.local
+```
+
+Then edit `.env.local` and add your Heroku API URL and API key:
+
+```env
+NEXT_PUBLIC_HEROKU_URL=https://your-heroku-app.herokuapp.com/api/endpoint
+NEXT_PUBLIC_API_KEY=your-api-key-here
+```
+
+### 2. Install Dependencies
+
+```bash
+npm install
+```
+
+### 3. Run the Development Server
+
 First, run the development server:
 
 ```bash
@@ -19,6 +42,25 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+
+## Features
+
+- **AI-Powered Deck Building**: Enter a prompt describing your desired deck and let AI generate it
+- **Clean UI**: Modern, responsive design with dark mode support
+- **Heroku Integration**: Connects to your Heroku API endpoint for deck generation
+
+## API Request Format
+
+The app sends requests to your Heroku endpoint in the following format:
+
+```json
+{
+  "prompt": "create a slide deck",
+  "model": "gpt-o4-2024-08-06"
+}
+```
+
+The API should return a response with the generated deck content.
 
 ## Learn More
 

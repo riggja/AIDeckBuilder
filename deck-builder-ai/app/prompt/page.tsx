@@ -1,32 +1,153 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function PromptPage() {
+  const router = useRouter();
   const [prompt, setPrompt] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [response, setResponse] = useState('');
+  const [hasExistingDeck, setHasExistingDeck] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  useEffect(() => {
+    // Check if there's an existing deck in localStorage
+    const savedDeck = localStorage.getItem('slidedeck');
+    if (savedDeck) {
+      try {
+        const parsed = JSON.parse(savedDeck);
+        const hasSlides = (parsed.slides && parsed.slides.length > 0) ||
+                         (Array.isArray(parsed) && parsed.length > 0);
+        setHasExistingDeck(hasSlides);
+      } catch {
+        setHasExistingDeck(false);
+      }
+    }
+  }, []);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setResponse('');
 
     try {
-      // TODO: Replace with actual API endpoint
-      // const result = await fetch('/api/generate-deck', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ prompt }),
-      // });
-      // const data = await result.json();
-      // setResponse(data.response);
+      const apiUrl = process.env.NEXT_PUBLIC_HEROKU_URL;
+      const apiKey = process.env.NEXT_PUBLIC_API_KEY;
 
-      // Placeholder response
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setResponse(`Deck generated for: "${prompt}"`);
+      if (!apiUrl || !apiKey) {
+        throw new Error('API URL or API Key not configured. Please check your .env.local file.');
+      }
+
+      const result = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          prompt: prompt,
+          model: 'gpt-4o-2024-08-06',
+        }),
+      });
+
+      console.log('Response status:', result.status);
+
+      // Try to get error details from the response
+      const responseText = await result.text();
+      console.log('Response body:', responseText);
+
+      if (!result.ok) {
+        let errorDetails = responseText;
+        try {
+          const errorJson = JSON.parse(responseText);
+          errorDetails = errorJson.error || errorJson.message || responseText;
+        } catch (e) {
+          // Response wasn't JSON, use the text
+        }
+        throw new Error(`API Error (${result.status}): ${errorDetails}`);
+      }
+
+      const data = JSON.parse(responseText);
+      console.log('Success data:', data);
+
+      // Parse slides from the response
+      let slides = [];
+      let deckTitle = 'Slide Deck';
+
+      // Handle the new API format: { success: true, data: { deckTitle, slides } }
+      if (data.success && data.data) {
+        deckTitle = data.data.deckTitle || 'Slide Deck';
+        if (data.data.slides && Array.isArray(data.data.slides)) {
+          slides = data.data.slides.map((slide, index) => {
+            // Convert content array to formatted text
+            let contentText = '';
+            if (Array.isArray(slide.content)) {
+              contentText = slide.content.map(item => {
+                if (item.type === 'bullet') {
+                  return `• ${item.text}`;
+                } else if (item.type === 'paragraph') {
+                  return item.text;
+                } else {
+                  return item.text || '';
+                }
+              }).join('\n');
+            } else if (typeof slide.content === 'string') {
+              contentText = slide.content;
+            }
+
+            return {
+              id: slide.id || `${index + 1}`,
+              title: slide.title || `Slide ${index + 1}`,
+              content: contentText,
+              rawContent: slide.content // Keep original structured content
+            };
+          });
+        }
+      }
+      // Handle legacy formats
+      else if (data.slides && Array.isArray(data.slides)) {
+        slides = data.slides;
+      } else if (Array.isArray(data)) {
+        slides = data;
+      } else if (data.response) {
+        if (typeof data.response === 'string') {
+          setResponse(data.response);
+          slides = [{
+            title: 'Generated Content',
+            content: data.response
+          }];
+        } else if (Array.isArray(data.response)) {
+          slides = data.response;
+        }
+      } else {
+        slides = [{
+          title: 'Generated Content',
+          content: JSON.stringify(data, null, 2)
+        }];
+      }
+
+      // Ensure slides have the correct structure
+      slides = slides.map((slide, index) => ({
+        id: slide.id || `${index + 1}`,
+        title: slide.title || `Slide ${index + 1}`,
+        content: slide.content || slide.text || slide.body || '',
+        rawContent: slide.rawContent || slide.content
+      }));
+
+      if (slides.length > 0) {
+        // Save to localStorage and navigate to results
+        const deckData = {
+          deckTitle,
+          slides
+        };
+        localStorage.setItem('slidedeck', JSON.stringify(deckData));
+        router.push('/results');
+      } else {
+        setResponse('No slides were generated. Please try a different prompt.');
+      }
     } catch (error) {
-      setResponse('Error generating deck. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      setResponse(`Error: ${errorMessage}`);
       console.error(error);
     } finally {
       setIsLoading(false);
@@ -64,13 +185,26 @@ export default function PromptPage() {
             />
           </div>
 
-          <button
-            type="submit"
-            disabled={isLoading || !prompt.trim()}
-            className="flex h-12 items-center justify-center rounded-full bg-black px-6 text-base font-medium text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
-          >
-            {isLoading ? 'Generating...' : 'Generate Deck'}
-          </button>
+          <div className="flex gap-3">
+            <button
+              type="submit"
+              disabled={isLoading || !prompt.trim()}
+              className="flex-1 flex h-12 items-center justify-center rounded-full bg-black px-6 text-base font-medium text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
+            >
+              {isLoading ? 'Generating...' : 'Generate Deck'}
+            </button>
+
+            {hasExistingDeck && (
+              <button
+                type="button"
+                onClick={() => router.push('/results')}
+                disabled={isLoading}
+                className="flex h-12 items-center justify-center rounded-full border-2 border-black px-6 text-base font-medium text-black transition-colors hover:bg-black hover:text-white disabled:cursor-not-allowed disabled:opacity-50 dark:border-white dark:text-white dark:hover:bg-white dark:hover:text-black"
+              >
+                View Last Deck
+              </button>
+            )}
+          </div>
         </form>
 
         {response && (
