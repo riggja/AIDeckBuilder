@@ -39,12 +39,13 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 ### 4. Project Architecture
 
+```bash
 /deck-builder-ai
 ├── /app
 │   ├── /prompt        # Contains page where user enters prompt
 │   ├── /results       # Displays slide deck and allows users to edit and export the deck
 │   └── page.tsx       # Main front page with link to GitHub repo
-
+```
 
 ### 5. Project Features
 
