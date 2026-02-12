@@ -51,6 +51,6 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 - **AI-Powered Deck Building**: Enter a prompt describing your desired deck and let AI generate it
 - **Navigation**: Users can use the arrow keys to navigate through the slide deck
-- **Modifiable**: Modify any slide, with changes saved in local storage so they appear on a page refresh
+- **Modifiable**: Modify any slide and changes are saved in local storage so that they appear on a page refresh
 - **Export .pptx**: Export any slide as a .pptx file
 - **View Previous**: Users can access the last generated deck after returning to prompt page
