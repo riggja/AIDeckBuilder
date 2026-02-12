@@ -37,3 +37,19 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+### 4. Project Architecture
+
+/deck-builder-ai
+├── /app
+│   ├── /prompt        # Contains page where user enters prompt
+│   ├── /results       # Displays slide deck and allows users to edit and export the deck
+│   └── page.tsx       # Main front page with link to GitHub repo
+
+
+### 5. Project Features
+
+- **AI-Powered Deck Building**: Enter a prompt describing your desired deck and let AI generate it
+- **Navigation**: Users can use the arrow keys to navigate through the slide deck
+- **Modifiable**: Modify any slide, with changes saved in local storage so they appear on a page refresh
+- **Export .pptx**: Export any slide as a .pptx file
+- **View Previous**: Users can access the last generated deck after returning to prompt page
