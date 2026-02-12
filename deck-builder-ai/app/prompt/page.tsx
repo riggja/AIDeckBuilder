@@ -16,8 +16,7 @@ export default function PromptPage() {
     if (savedDeck) {
       try {
         const parsed = JSON.parse(savedDeck);
-        const hasSlides = (parsed.slides && parsed.slides.length > 0) ||
-                         (Array.isArray(parsed) && parsed.length > 0);
+        const hasSlides = parsed.slides && parsed.slides.length > 0;
         setHasExistingDeck(hasSlides);
       } catch {
         setHasExistingDeck(false);
@@ -74,7 +73,7 @@ export default function PromptPage() {
       let slides = [];
       let deckTitle = 'Slide Deck';
 
-      // Handle the new API format: { success: true, data: { deckTitle, slides } }
+      // Handle API format: { success: true, data: { deckTitle, slides } }
       if (data.success && data.data) {
         deckTitle = data.data.deckTitle || 'Slide Deck';
         if (data.data.slides && Array.isArray(data.data.slides)) {
@@ -103,27 +102,6 @@ export default function PromptPage() {
             };
           });
         }
-      }
-      // Handle legacy formats
-      else if (data.slides && Array.isArray(data.slides)) {
-        slides = data.slides;
-      } else if (Array.isArray(data)) {
-        slides = data;
-      } else if (data.response) {
-        if (typeof data.response === 'string') {
-          setResponse(data.response);
-          slides = [{
-            title: 'Generated Content',
-            content: data.response
-          }];
-        } else if (Array.isArray(data.response)) {
-          slides = data.response;
-        }
-      } else {
-        slides = [{
-          title: 'Generated Content',
-          content: JSON.stringify(data, null, 2)
-        }];
       }
 
       // Ensure slides have the correct structure

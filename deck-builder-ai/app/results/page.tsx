@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import pptxgen from 'pptxgenjs';
 
 interface Slide {
   id?: string;
@@ -30,14 +31,9 @@ export default function ResultsPage() {
       try {
         const parsed = JSON.parse(savedData);
 
-        // Handle new format: { deckTitle, slides }
         if (parsed.deckTitle && parsed.slides) {
           setDeckTitle(parsed.deckTitle);
           setSlides(parsed.slides);
-        }
-        // Handle legacy format: array of slides
-        else if (Array.isArray(parsed)) {
-          setSlides(parsed);
         }
       } catch (error) {
         console.error('Error parsing slides:', error);
@@ -98,6 +94,63 @@ export default function ResultsPage() {
     }
   };
 
+  const handleExportPPTX = () => {
+    const pptx = new pptxgen();
+
+    // Set presentation properties
+    pptx.author = 'AI Deck Builder';
+    pptx.company = 'AI Deck Builder';
+    pptx.title = deckTitle;
+
+    // Add slides
+    slides.forEach((slide) => {
+      const pptxSlide = pptx.addSlide();
+
+      // Add title
+      pptxSlide.addText(slide.title, {
+        x: 0.5,
+        y: 0.5,
+        w: '90%',
+        h: 1,
+        fontSize: 32,
+        bold: true,
+        color: '000000',
+      });
+
+      // Process content - split by lines and handle bullet points
+      const contentLines = slide.content.split('\n').filter(line => line.trim());
+
+      // Add content as bullet points if they start with •, otherwise as paragraphs
+      let yPosition = 1.8;
+      contentLines.forEach((line) => {
+        const trimmedLine = line.trim();
+        if (trimmedLine.startsWith('•')) {
+          pptxSlide.addText(trimmedLine.substring(1).trim(), {
+            x: 0.5,
+            y: yPosition,
+            w: '90%',
+            fontSize: 16,
+            color: '333333',
+            bullet: { code: '2022' },
+          });
+        } else if (trimmedLine) {
+          pptxSlide.addText(trimmedLine, {
+            x: 0.5,
+            y: yPosition,
+            w: '90%',
+            fontSize: 16,
+            color: '333333',
+          });
+        }
+        yPosition += 0.4;
+      });
+    });
+
+    // Save the presentation
+    const fileName = `${deckTitle.replace(/[^a-z0-9]/gi, '_')}.pptx`;
+    pptx.writeFile({ fileName });
+  };
+
   if (slides.length === 0) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
@@ -136,8 +189,30 @@ export default function ResultsPage() {
           >
             ← Back to Prompt
           </Link>
-          <div className="text-sm text-zinc-600 dark:text-zinc-400">
-            Slide {currentSlideIndex + 1} of {slides.length}
+          <div className="flex items-center gap-4">
+            <button
+              onClick={handleExportPPTX}
+              className="flex h-10 items-center justify-center gap-2 rounded-lg bg-blue-600 px-6 text-sm font-medium text-white transition-colors hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
+              </svg>
+              Export .pptx
+            </button>
+            <div className="text-sm text-zinc-600 dark:text-zinc-400">
+              Slide {currentSlideIndex + 1} of {slides.length}
+            </div>
           </div>
         </div>
 
